@@ -12,7 +12,6 @@ import com.google.android.gms.maps.model.MarkerOptions
 import cr.ac.gpsservice.db.LocationDatabase
 import cr.ac.gpsservice.entity.Location
 
-
 class GpsService : IntentService("GpsService") {
     lateinit var locationCallback: LocationCallback
     lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -46,8 +45,8 @@ class GpsService : IntentService("GpsService") {
         //val locationRequest=LocationRequest.create()
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         locationRequest = LocationRequest()
-        locationRequest.interval = 1000 // If not here
-        locationRequest.fastestInterval = 1000  // If it can it'll do it here
+        locationRequest.interval = 10000 // If not here
+        locationRequest.fastestInterval = 5000  // If it can it'll do it here
         locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
 
         locationCallback = object : LocationCallback() {

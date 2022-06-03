@@ -29,7 +29,6 @@ abstract class LocationDatabase : RoomDatabase() {
                         .build()
                     INSTANCE =instance
                 }
-
                     return instance
                 }
             }

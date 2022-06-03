@@ -8,22 +8,28 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
-
+import com.google.maps.android.data.geojson.GeoJsonLayer
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.maps.android.PolyUtil
+import com.google.maps.android.data.geojson.GeoJsonPolygon
 import cr.ac.gpsservice.databinding.ActivityMapsBinding
 import cr.ac.gpsservice.db.LocationDatabase
 import cr.ac.gpsservice.entity.Location
 import cr.ac.gpsservice.service.GpsService
+import org.json.JSONObject
 import java.util.jar.Manifest
 
 private lateinit var mMap: GoogleMap
 private lateinit var locationDatabase: LocationDatabase
+private lateinit var layer : GeoJsonLayer
+
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -50,7 +56,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
         iniciaServicio()
-
+        definePoligono(googleMap)
         recuperarPuntos(mMap)
 
     }
@@ -66,6 +72,48 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
     }
+
+    fun definePoligono(googleMap: GoogleMap){
+        val geoJsonData= JSONObject("{\n" +
+                "  \"type\": \"FeatureCollection\",\n" +
+                "  \"features\": [\n" +
+                "    {\n" +
+                "      \"type\": \"Feature\",\n" +
+                "      \"properties\": {},\n" +
+                "      \"geometry\": {\n" +
+                "        \"type\": \"Polygon\",\n" +
+                "        \"coordinates\": [\n" +
+                "          [\n" +
+                "            [\n" +
+                "              -104.61181640625,\n" +
+                "              21.57571893245848\n" +
+                "            ],\n" +
+                "            [\n" +
+                "              -105.49072265625,\n" +
+                "              16.36230951024085\n" +
+                "            ],\n" +
+                "            [\n" +
+                "              -94.7900390625,\n" +
+                "              14.689881366618762\n" +
+                "            ],\n" +
+                "            [\n" +
+                "              -94.46044921875,\n" +
+                "              21.391704731036587\n" +
+                "            ],\n" +
+                "            [\n" +
+                "              -104.61181640625,\n" +
+                "              21.57571893245848\n" +
+                "            ]\n" +
+                "          ]\n" +
+                "        ]\n" +
+                "      }\n" +
+                "    }\n" +
+                "  ]\n" +
+                "}")
+        layer = GeoJsonLayer(googleMap, geoJsonData)
+        layer.addLayerToMap()
+    }
+
 
 
     /**
@@ -128,28 +176,41 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
             }
         }
-
-
     }
 
     /**
      * es la clase para recibir los mensajes de broadcast
      */
-    class ProgressReceiver:BroadcastReceiver(){
+    class ProgressReceiver:BroadcastReceiver() {
         /**
          * se obtiene el parametro enviado por el servicio (Location)
          * Coloca en el mapa la localizacion
          * Mueve la camara a esa localizacion
          */
+        fun getPolygon(layer: GeoJsonLayer): GeoJsonPolygon? {
+            for (feature in layer.features) {
+                return feature.geometry as GeoJsonPolygon
+            }
+            return null
+        }
+
         override fun onReceive(p0: Context, p1: Intent) {
-            if(p1.action==GpsService.GPS){
-                val localizacion:Location= p1.getSerializableExtra("localizacion") as Location
-                val punto=LatLng(localizacion.latitude,localizacion.longitude)
+            if (p1.action == GpsService.GPS) {
+                val localizacion: Location = p1.getSerializableExtra("localizacion") as Location
+                val punto = LatLng(localizacion.latitude, localizacion.longitude)
                 mMap.addMarker(MarkerOptions().position(punto).title("Marker in Costa Rica"))
                 //mMap.moveCamera(CameraUpdateFactory.newLatLng(punto))
 
+
+                if (PolyUtil.containsLocation(
+                        localizacion.latitude,
+                        localizacion.longitude,
+                        getPolygon(layer)!!.outerBoundaryCoordinates, false)) {
+                            Toast.makeText(p0,"En el punto",Toast.LENGTH_SHORT).show()
+                }else{
+                    Toast.makeText(p0,"No esta en el punto",Toast.LENGTH_SHORT).show()
+                }
             }
         }
     }
-
 }
